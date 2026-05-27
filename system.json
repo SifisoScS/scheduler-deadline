@@ -1,0 +1,25 @@
+{
+  "system": "task-scheduler",
+  "role": "module",
+  "related": [
+    "scheduler-engine",
+    "scheduler-cron",
+    "scheduler-interval",
+    "scheduler-recurring",
+    "scheduler-priority",
+    "scheduler-throttle"
+  ],
+  "quality": {
+    "typeSafety": 1,
+    "exportCompleteness": 0.7,
+    "documentationDensity": 1,
+    "testPresence": 1,
+    "overallScore": 0.91,
+    "passed": true,
+    "evaluatedAt": "2026-05-27T16:19:03.055Z"
+  },
+  "regressionReport": {
+    "regressionDetected": false,
+    "regressions": []
+  }
+}
