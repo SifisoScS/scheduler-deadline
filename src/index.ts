@@ -13,7 +13,7 @@ export class Deadline {
    */
   constructor(dueDate: Date, description?: string) {
     if (!(dueDate instanceof Date) || isNaN(dueDate.getTime())) {
-      throw new Error("Invalid dueDate: must be a valid Date object.");
+      throw new Error('Invalid dueDate: must be a valid Date object.');
     }
     this.dueDate = dueDate;
     this.description = description;
@@ -48,7 +48,7 @@ export class Deadline {
  * Calls execute() and exits cleanly.
  */
 export function start(): void {
-  console.log("📦 Module starting...");
+  console.log('📦 Module starting...');
   execute();
 }
 
@@ -57,7 +57,7 @@ export function start(): void {
  * Override or extend this function to add domain-specific behaviour.
  */
 export function execute(): void {
-  console.log("📦 Module executed");
+  console.log('📦 Module executed');
 }
 
 /**
