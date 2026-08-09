@@ -1,4 +1,4 @@
-import { start, execute, validate, Deadline } from "../src/index";
+import { start, execute, validate, Deadline } from "../src/index.ts";
 
 describe("Module functions", () => {
   test("start is a function", () => {
