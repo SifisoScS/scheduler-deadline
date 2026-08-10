@@ -28,6 +28,17 @@ npm run check-lockfile
 
 Let Dependabot or CI own `package-lock.json`.
 
+### Changing dependencies on Windows
+
+You cannot. `npm install`, `npm uninstall` and even
+`npm install --package-lock-only` all rewrite the lockfile against the current
+machine and drop packages other platforms need — including transitive ones that
+carry no platform metadata of their own. The guard catches this, but there is no
+local repair: the only fix is `git checkout -- package-lock.json`.
+
+To add or remove a dependency, either let Dependabot do it, or regenerate the
+lockfile on Linux (WSL, a container, or a CI job).
+
 ## Scripts
 
 | Script                   | What it does                                    |

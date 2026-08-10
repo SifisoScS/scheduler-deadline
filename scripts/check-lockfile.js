@@ -8,11 +8,19 @@
  * platforms. Jest 30 pulls in such bindings via jest-resolve, so committing a
  * lockfile produced that way breaks `npm ci` for everyone on a different OS.
  *
- * The check is deliberately generic: it looks for optional packages carrying an
- * `os` constraint and asserts that the platforms we build on are all still
- * represented. It never hardcodes a package name, so it keeps working when the
- * dependency tree changes. If the tree has no platform-scoped packages at all
- * there is nothing to prune, and the check passes.
+ * Two independent checks, because pruning shows up in two different ways:
+ *
+ *   1. Platform coverage — packages carrying an `os` constraint must still
+ *      cover every platform we build on.
+ *   2. Dependency completeness — every dependency named by an entry must
+ *      resolve to another entry. Pruning also removes transitive packages that
+ *      carry no platform metadata of their own, which check 1 cannot see. This
+ *      is the invariant `npm ci` enforces, verified before install rather than
+ *      after a push.
+ *
+ * Neither check hardcodes a package name, so both keep working as the
+ * dependency tree changes. A tree with no platform-scoped packages passes
+ * rather than false-alarming.
  *
  * Usage:
  *   node scripts/check-lockfile.js [path-to-package-lock.json]
@@ -40,43 +48,94 @@ try {
   process.exit(1);
 }
 
-const scoped = Object.entries(lock.packages ?? {}).filter(([, meta]) => Array.isArray(meta.os));
+const packages = lock.packages ?? {};
+const paths = new Set(Object.keys(packages));
 
-if (scoped.length === 0) {
-  console.log('check-lockfile: no platform-scoped packages — nothing to prune.');
-  process.exit(0);
+const problems = [];
+
+// --- 1. Platform coverage -------------------------------------------------
+// Native bindings carry an `os` constraint. If whole platforms have vanished,
+// the lockfile was rewritten against one machine.
+
+const scoped = Object.entries(packages).filter(([, meta]) => Array.isArray(meta.os));
+const platforms = new Set(scoped.flatMap(([, meta]) => meta.os));
+
+if (scoped.length > 0) {
+  const absent = REQUIRED_PLATFORMS.filter((platform) => !platforms.has(platform));
+  if (absent.length > 0) {
+    problems.push(
+      `missing platforms: ${absent.join(', ')} (present: ${[...platforms].sort().join(', ')})`,
+    );
+  }
 }
 
-const present = new Set(scoped.flatMap(([, meta]) => meta.os));
-const missing = REQUIRED_PLATFORMS.filter((platform) => !present.has(platform));
+// --- 2. Dependency completeness -------------------------------------------
+// Pruning also drops transitive dependencies that carry no `os` field of their
+// own, which the check above cannot see. Every dependency named by an entry
+// must resolve to another entry, walking up node_modules the way Node does.
+// This is the same invariant `npm ci` enforces, checked before install.
 
-if (missing.length > 0) {
+function resolve(fromPath, name) {
+  let prefix = fromPath;
+  for (;;) {
+    const candidate = prefix ? `${prefix}/node_modules/${name}` : `node_modules/${name}`;
+    if (paths.has(candidate)) return true;
+    if (!prefix) return false;
+    const cut = prefix.lastIndexOf('/node_modules/');
+    prefix = cut === -1 ? '' : prefix.slice(0, cut);
+  }
+}
+
+const unresolved = [];
+for (const [entryPath, meta] of Object.entries(packages)) {
+  const named = { ...(meta.dependencies ?? {}), ...(meta.optionalDependencies ?? {}) };
+  for (const name of Object.keys(named)) {
+    if (!resolve(entryPath, name)) {
+      unresolved.push(`${name} (required by ${entryPath || 'the root project'})`);
+    }
+  }
+}
+
+if (unresolved.length > 0) {
+  const shown = unresolved.slice(0, 8);
+  problems.push(
+    `unresolved dependencies:\n      ${shown.join('\n      ')}` +
+      (unresolved.length > shown.length
+        ? `\n      …and ${unresolved.length - shown.length} more`
+        : ''),
+  );
+}
+
+// --- Report ---------------------------------------------------------------
+
+if (problems.length > 0) {
   console.error(
     [
       '',
-      'check-lockfile: package-lock.json looks platform-pruned.',
+      'check-lockfile: package-lock.json is incomplete.',
       '',
-      `  missing platforms : ${missing.join(', ')}`,
-      `  present platforms : ${[...present].sort().join(', ') || '(none)'}`,
-      `  platform-scoped   : ${scoped.length} package(s)`,
+      ...problems.map((problem) => `  - ${problem}`),
       '',
-      'This happens when a bare `npm install` rewrites the lockfile using only',
-      'the current machine, dropping native bindings other platforms need.',
-      '`npm ci` on those platforms will then fail or silently misbehave.',
+      'This happens when npm rewrites the lockfile against the current machine,',
+      'dropping packages other platforms need. `npm ci` will then fail everywhere',
+      'else. On Windows this cannot be repaired locally: even',
+      '`npm install --package-lock-only` prunes.',
       '',
       'To fix:',
-      '  git checkout -- package-lock.json   # discard the pruned lockfile',
+      '  git checkout -- package-lock.json   # discard the rewritten lockfile',
       '  npm ci                              # install without rewriting it',
       '',
-      'Let Dependabot or CI own package-lock.json. Use `npm ci` locally.',
+      'If you genuinely need to add or remove a dependency, let Dependabot do it,',
+      'or regenerate the lockfile on Linux.',
       '',
     ].join('\n'),
   );
   process.exit(1);
 }
 
-console.log(
-  `check-lockfile: ok — ${scoped.length} platform-scoped package(s) covering ${[...present]
-    .sort()
-    .join(', ')}.`,
-);
+const coverage =
+  scoped.length > 0
+    ? `${scoped.length} platform-scoped package(s) covering ${[...platforms].sort().join(', ')}`
+    : 'no platform-scoped packages';
+
+console.log(`check-lockfile: ok — ${coverage}; ${paths.size} entries all resolve.`);
