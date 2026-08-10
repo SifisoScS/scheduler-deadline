@@ -1,6 +1,8 @@
 # scheduler-deadline
 
+[![npm](https://img.shields.io/npm/v/scheduler-deadline.svg)](https://www.npmjs.com/package/scheduler-deadline)
 [![CI](https://github.com/SifisoScS/scheduler-deadline/actions/workflows/ci.yml/badge.svg)](https://github.com/SifisoScS/scheduler-deadline/actions/workflows/ci.yml)
+[![provenance](https://img.shields.io/badge/provenance-signed-blueviolet.svg)](https://www.npmjs.com/package/scheduler-deadline#provenance)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](https://nodejs.org)
 

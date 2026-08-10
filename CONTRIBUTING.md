@@ -113,9 +113,15 @@ tarball is cryptographically linked to the commit that produced it.
 A tag whose version disagrees with `package.json` fails the workflow rather than
 publishing something untraceable.
 
-**One-time setup:** the workflow needs an `NPM_TOKEN` secret (an npm automation
-token) on the `npm-publish` environment. Gating it behind an environment means a
-publish can require review before it runs.
+**There is no publish token.** The workflow authenticates to npm through
+[trusted publishing](https://docs.npmjs.com/trusted-publishers/), exchanging a
+short-lived GitHub OIDC token for publish rights. Nothing long-lived is stored,
+so there is nothing to rotate or leak, and provenance is generated automatically.
+
+The trusted publisher is configured on the package's npm settings page and is
+pinned to this repository, the `release.yml` workflow and the `npm-publish`
+environment. Renaming the workflow file or the environment will break publishing
+until the npm-side configuration is updated to match.
 
 ## Reporting bugs
 

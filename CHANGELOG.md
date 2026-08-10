@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- Publishing now authenticates via npm trusted publishing (OIDC) instead of a
+  stored token. No long-lived credential exists for this package, and provenance
+  is generated automatically rather than requested with a flag.
+- Release builds no longer cache dependencies, so a stale or poisoned cache
+  cannot be baked into a signed artifact.
+
 ## [1.0.0] - 2026-08-10
 
 First release. Nothing was published before this version.

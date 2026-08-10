@@ -17,19 +17,24 @@ jobs:
 
     permissions:
       contents: read
-      # Required for npm provenance: the workflow exchanges this token for a
-      # signed attestation linking the tarball to this commit and workflow.
+      # The OIDC token npm exchanges for publish rights under trusted
+      # publishing, and the same mechanism that signs the provenance
+      # attestation. Without this the publish cannot authenticate at all.
       id-token: write
 
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      # Trusted publishing requires npm >= 11.5.1 and Node >= 22.14.0.
+      # Node 24 currently ships npm 11.16.0, comfortably above both.
+      # Dependency caching is deliberately not enabled: npm advises against it
+      # in release builds, where a poisoned or stale cache would be baked into
+      # a signed, published artifact.
       - name: Use Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24
-          cache: 'npm'
           registry-url: 'https://registry.npmjs.org'
 
       - name: Verify lockfile is not platform-pruned
@@ -68,7 +73,9 @@ jobs:
       - name: Build
         run: npm run build
 
+      # Authenticated by OIDC via the npm trusted publisher configured for this
+      # package, so there is no token to store, rotate or leak. Provenance is
+      # generated automatically under trusted publishing — passing
+      # --provenance explicitly is unnecessary.
       - name: Publish to npm
-        run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public
