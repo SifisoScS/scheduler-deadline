@@ -24,6 +24,8 @@
     "test": "jest",
     "test:coverage": "jest --coverage",
     "type-check": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json",
+    "check-lockfile": "node scripts/check-lockfile.js",
+    "prepare": "git config core.hooksPath .githooks || exit 0",
     "prepublishOnly": "npm run lint && npm run type-check && npm run test:coverage && npm run build"
   },
   "keywords": [

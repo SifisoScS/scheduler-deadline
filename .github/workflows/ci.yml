@@ -30,6 +30,11 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
 
+      # Runs before install: a pruned lockfile is a property of the file itself,
+      # and failing here gives a clearer message than a later ENOENT would.
+      - name: Verify lockfile is not platform-pruned
+        run: npm run check-lockfile
+
       - name: Install dependencies
         run: npm ci
 

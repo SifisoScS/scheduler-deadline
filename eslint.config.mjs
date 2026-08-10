@@ -31,6 +31,8 @@ export default tseslint.config(
         module: 'writable',
         require: 'readonly',
         __dirname: 'readonly',
+        process: 'readonly',
+        console: 'readonly',
       },
     },
   },

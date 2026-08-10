@@ -12,24 +12,38 @@ cd scheduler-deadline
 npm ci
 ```
 
-Use `npm ci` rather than `npm install` so you get exactly the locked dependency
-tree that CI uses.
+**Use `npm ci`, never a bare `npm install`.** Beyond giving you exactly the
+locked tree that CI uses, `npm install` resolves optional dependencies against
+_your_ machine and rewrites `package-lock.json` without the native bindings
+other platforms need. Jest pulls in such bindings, so committing a lockfile
+produced that way breaks CI for everyone on a different OS.
+
+A pre-commit hook and a CI step both guard against this. Run `npm run prepare`
+once to enable the hook (it points `core.hooksPath` at `.githooks/`); `npm ci`
+does it for you. To check by hand:
+
+```bash
+npm run check-lockfile
+```
+
+Let Dependabot or CI own `package-lock.json`.
 
 ## Scripts
 
-| Script                  | What it does                                    |
-| ----------------------- | ----------------------------------------------- |
-| `npm run build`         | Compiles `src/` to `dist/`                      |
-| `npm test`              | Runs the Jest suite                             |
-| `npm run test:coverage` | Runs tests and enforces the coverage thresholds |
-| `npm run lint`          | ESLint, including type-aware rules              |
-| `npm run type-check`    | Type-checks the production and test projects    |
-| `npm run format`        | Formats with Prettier                           |
+| Script                   | What it does                                    |
+| ------------------------ | ----------------------------------------------- |
+| `npm run build`          | Compiles `src/` to `dist/`                      |
+| `npm test`               | Runs the Jest suite                             |
+| `npm run test:coverage`  | Runs tests and enforces the coverage thresholds |
+| `npm run lint`           | ESLint, including type-aware rules              |
+| `npm run type-check`     | Type-checks the production and test projects    |
+| `npm run format`         | Formats with Prettier                           |
+| `npm run check-lockfile` | Fails if package-lock.json is platform-pruned   |
 
 Before opening a pull request, run the same checks CI does:
 
 ```bash
-npm run lint && npm run type-check && npm run test:coverage && npm run build
+npm run check-lockfile && npm run format:check && npm run lint && npm run type-check && npm run test:coverage && npm run build
 ```
 
 ## Project layout

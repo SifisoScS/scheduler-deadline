@@ -50,6 +50,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CI hardened: least-privilege `permissions`, actions pinned to commit SHAs, a
   dependency audit step, and a smoke test that asserts on the built output.
 
+- Guard against a platform-pruned `package-lock.json`. A bare `npm install`
+  drops native bindings for other platforms; a CI step and a pre-commit hook
+  now reject such a lockfile before it can break everyone else's `npm ci`.
+
 ### Security
 
 - Added `SECURITY.md` with a private vulnerability reporting process.
