@@ -1,0 +1,38 @@
+version: 2
+
+updates:
+  # Development dependencies only — this package has no runtime dependencies.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      # Keep the linting and testing toolchains together so related majors land
+      # in one reviewable PR rather than several conflicting ones.
+      eslint:
+        patterns:
+          - eslint
+          - '@eslint/*'
+          - typescript-eslint
+      jest:
+        patterns:
+          - jest
+          - ts-jest
+          - '@types/jest'
+      dev-minor-and-patch:
+        update-types:
+          - minor
+          - patch
+
+  # Actions in the CI workflow are pinned to commit SHAs; Dependabot updates the
+  # SHA and the trailing version comment together.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: chore

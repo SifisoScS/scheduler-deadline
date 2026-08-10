@@ -6,24 +6,38 @@ on:
   pull_request:
     branches: [main]
 
+# Least privilege: this workflow only ever reads the repository.
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        node-version: [18, 20, 22]
+        node-version: [20, 22, 24]
 
     steps:
-      - uses: actions/checkout@v4
+      # Actions are pinned to commit SHAs rather than mutable tags so a
+      # compromised or force-moved tag cannot silently change what runs here.
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Audit dependencies
+        run: npm audit --audit-level=high
+
+      - name: Format check
+        run: npm run format:check
 
       - name: Lint
         run: npm run lint
@@ -32,10 +46,33 @@ jobs:
         run: npm run type-check
 
       - name: Test
-        run: npm test
+        run: npm run test:coverage
 
       - name: Build
         run: npm run build
 
-      - name: Smoke test
-        run: node dist/index.js
+      # Exercises the compiled output the way a consumer would, and asserts on
+      # the results. A module that merely loads without throwing is not a test.
+      - name: Smoke test (built output)
+        run: |
+          node -e "
+            const assert = require('node:assert/strict');
+            const { Deadline, validate, execute, start } = require('./dist/index.js');
+
+            const deadline = new Deadline(new Date('2030-01-01'), 'ci');
+            assert.equal(deadline.isOverdue(), false);
+            assert.equal(deadline.getDescription(), 'ci');
+            assert.equal(deadline.isOverdue(new Date('2031-01-01')), true);
+
+            deadline.getDueDate().setFullYear(1990);
+            assert.equal(deadline.isOverdue(), false, 'Deadline must be immutable');
+
+            assert.equal(validate(0), true);
+            assert.equal(validate(undefined), false);
+            assert.throws(() => new Deadline(new Date('nope')));
+            assert.throws(() => deadline.isOverdue(new Date('nope')));
+
+            assert.equal(typeof start, 'function');
+            assert.equal(typeof execute, 'function');
+            console.log('smoke ok');
+          "
