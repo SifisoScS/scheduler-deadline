@@ -58,11 +58,13 @@ jobs:
 
       # Exercises the compiled output the way a consumer would, and asserts on
       # the results. A module that merely loads without throwing is not a test.
-      - name: Smoke test (built output)
+      # Both build formats are checked: a broken ESM emit is invisible to the
+      # CommonJS test suite, so only this step would catch it.
+      - name: Smoke test (CommonJS build)
         run: |
           node -e "
             const assert = require('node:assert/strict');
-            const { Deadline, validate, execute, start } = require('./dist/index.js');
+            const { Deadline, validate } = require('./dist/cjs/index.js');
 
             const deadline = new Deadline(new Date('2030-01-01'), 'ci');
             assert.equal(deadline.isOverdue(), false);
@@ -77,7 +79,53 @@ jobs:
             assert.throws(() => new Deadline(new Date('nope')));
             assert.throws(() => deadline.isOverdue(new Date('nope')));
 
-            assert.equal(typeof start, 'function');
-            assert.equal(typeof execute, 'function');
-            console.log('smoke ok');
+            console.log('cjs smoke ok');
+          "
+
+      - name: Smoke test (ESM build)
+        run: |
+          node --input-type=module -e "
+            import assert from 'node:assert/strict';
+            import { Deadline, validate } from './dist/esm/index.js';
+
+            const deadline = new Deadline(new Date('2030-01-01'), 'ci');
+            assert.equal(deadline.isOverdue(), false);
+            assert.equal(deadline.getDescription(), 'ci');
+
+            deadline.getDueDate().setFullYear(1990);
+            assert.equal(deadline.isOverdue(), false, 'Deadline must be immutable');
+
+            assert.equal(validate(0), true);
+            assert.equal(validate(undefined), false);
+            assert.throws(() => new Deadline(new Date('nope')));
+
+            console.log('esm smoke ok');
+          "
+
+      # Resolution through the exports map is a separate failure mode from the
+      # builds themselves: both can be correct while consumers still get the
+      # wrong file, or nothing at all.
+      - name: Verify packaged exports resolve
+        run: |
+          mkdir -p /tmp/pkg /tmp/consumer
+          npm pack --pack-destination /tmp/pkg
+          cd /tmp/consumer
+          echo '{"name":"consumer","version":"1.0.0","private":true}' > package.json
+          npm install /tmp/pkg/scheduler-deadline-*.tgz
+          node -e "
+            const assert = require('node:assert/strict');
+            const { sep } = require('node:path');
+            const resolved = require.resolve('scheduler-deadline').split(sep).join('/');
+            assert.ok(resolved.endsWith('dist/cjs/index.js'), 'require must resolve to the CJS build, got ' + resolved);
+            const { Deadline } = require('scheduler-deadline');
+            assert.equal(new Deadline(new Date('2030-01-01'), 'x').getDescription(), 'x');
+            console.log('require ->', resolved);
+          "
+          node --input-type=module -e "
+            import assert from 'node:assert/strict';
+            import { Deadline } from 'scheduler-deadline';
+            const resolved = import.meta.resolve('scheduler-deadline');
+            assert.ok(resolved.endsWith('dist/esm/index.js'), 'import must resolve to the ESM build, got ' + resolved);
+            assert.equal(new Deadline(new Date('2030-01-01'), 'y').getDescription(), 'y');
+            console.log('import  ->', resolved);
           "

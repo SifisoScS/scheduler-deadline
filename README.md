@@ -1,6 +1,9 @@
 # scheduler-deadline
 
-A TypeScript module for managing deadlines in a task scheduler.
+A small TypeScript module for representing deadlines in a task scheduler.
+
+Zero runtime dependencies. Ships both ESM and CommonJS builds with type
+definitions for each. Requires Node.js 20 or newer.
 
 ## Installation
 
@@ -13,45 +16,76 @@ npm install scheduler-deadline
 ```typescript
 import { Deadline, validate } from 'scheduler-deadline';
 
-// Create a deadline
 const deadline = new Deadline(new Date('2026-12-31'), 'Finish project');
-console.log(deadline.getDueDate()); // 2026-12-31T00:00:00.000Z
-console.log(deadline.isOverdue()); // false
 
-// Validate input
-console.log(validate(42)); // true
-console.log(validate(undefined)); // false
+deadline.getDueDate(); // 2026-12-31T00:00:00.000Z
+deadline.getDescription(); // 'Finish project'
+deadline.isOverdue(); // false
+
+validate(42); // true
+validate(0); // true  — defined, just falsy
+validate(undefined); // false
+```
+
+CommonJS works the same way:
+
+```javascript
+const { Deadline, validate } = require('scheduler-deadline');
 ```
 
 ## API
 
-### `Deadline`
+### `new Deadline(dueDate: Date, description?: string)`
 
-- `constructor(dueDate: Date, description?: string)` – Creates a new deadline.
-- `getDueDate(): Date` – Returns the due date.
-- `getDescription(): string | undefined` – Returns the description.
-- `isOverdue(now?: Date): boolean` – Checks if the deadline has passed.
+Creates a deadline. Throws if `dueDate` is not a valid `Date`.
 
-### `start()`
+Instances are **immutable**. The date is copied on the way in and on the way
+out, so a caller cannot change a deadline through a reference it holds:
 
-Logs a start message and calls `execute()`.
+```typescript
+const due = new Date('2030-01-01');
+const deadline = new Deadline(due);
 
-### `execute()`
+due.setFullYear(1990); // does not affect the deadline
+deadline.getDueDate().setFullYear(1990); // nor does this
 
-Logs a message indicating the module executed.
+deadline.isOverdue(); // still false
+```
+
+#### `getDueDate(): Date`
+
+Returns a copy of the due date.
+
+#### `getDescription(): string | undefined`
+
+Returns the description, or `undefined` if none was given.
+
+#### `isOverdue(now?: Date): boolean`
+
+Returns `true` when the deadline is **strictly** in the past. At the exact due
+instant the result is `false`.
+
+`now` defaults to the current time; pass it explicitly to make time-dependent
+logic deterministic in tests. Throws if `now` is not a valid `Date`.
+
+```typescript
+const deadline = new Deadline(new Date('2025-06-01'));
+
+deadline.isOverdue(new Date('2025-01-01')); // false
+deadline.isOverdue(new Date('2026-01-01')); // true
+```
 
 ### `validate(input: unknown): boolean`
 
-Returns `true` if `input` is not `undefined` or `null`.
+Returns `true` when `input` is neither `undefined` nor `null`.
 
-## Development
+Note this is a defined-ness check, not a truthiness check: `validate(0)`,
+`validate('')` and `validate(false)` all return `true`.
 
-```bash
-npm install
-npm run build
-npm test
-npm run lint
-```
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup and the checks CI runs. For
+security reports see [SECURITY.md](SECURITY.md).
 
 ## License
 

@@ -1,29 +1,10 @@
-import { start, execute, validate, Deadline } from '../src/index';
+import * as api from '../src/index';
+import { validate, Deadline } from '../src/index';
 
-describe('start / execute', () => {
-  let logSpy: jest.SpyInstance;
-
-  beforeEach(() => {
-    logSpy = jest.spyOn(console, 'log').mockImplementation(() => undefined);
-  });
-
-  afterEach(() => {
-    logSpy.mockRestore();
-  });
-
-  test('execute logs exactly one message', () => {
-    execute();
-
-    expect(logSpy).toHaveBeenCalledTimes(1);
-    expect(logSpy).toHaveBeenCalledWith('📦 Module executed');
-  });
-
-  test('start logs its own message and then delegates to execute', () => {
-    start();
-
-    expect(logSpy).toHaveBeenCalledTimes(2);
-    expect(logSpy).toHaveBeenNthCalledWith(1, '📦 Module starting...');
-    expect(logSpy).toHaveBeenNthCalledWith(2, '📦 Module executed');
+describe('public API', () => {
+  // Pins the exported surface so placeholder scaffolding cannot creep back in.
+  test('exports exactly Deadline and validate', () => {
+    expect(Object.keys(api).sort()).toEqual(['Deadline', 'validate']);
   });
 });
 

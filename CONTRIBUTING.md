@@ -84,6 +84,28 @@ docs: clarify isOverdue boundary behaviour
 3. Update `CHANGELOG.md` under `[Unreleased]`.
 4. Make sure CI is green — it runs on Node 20, 22, and 24.
 
+## Releasing
+
+Releases are driven by an annotated tag; there is no manual `npm publish`.
+
+1. Move the `[Unreleased]` entries in `CHANGELOG.md` under a new version
+   heading with today's date.
+2. Bump the version: `npm version <major|minor|patch>`. This commits the change
+   and creates a matching `vX.Y.Z` tag.
+3. Push both: `git push && git push --tags`.
+
+Pushing the tag triggers `.github/workflows/release.yml`, which re-runs every
+CI check, verifies the tag matches `package.json`, and publishes with
+[npm provenance](https://docs.npmjs.com/generating-provenance-statements) so the
+tarball is cryptographically linked to the commit that produced it.
+
+A tag whose version disagrees with `package.json` fails the workflow rather than
+publishing something untraceable.
+
+**One-time setup:** the workflow needs an `NPM_TOKEN` secret (an npm automation
+token) on the `npm-publish` environment. Gating it behind an environment means a
+publish can require review before it runs.
+
 ## Reporting bugs
 
 Open an issue with the version, a minimal reproduction, and what you expected

@@ -7,54 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-08-10
+
+First release. Nothing was published before this version.
+
 ### Added
 
-- Initial project setup with TypeScript, Jest, ESLint, and Prettier.
-- `Deadline` class with validation and `isOverdue` method.
-- `start`, `execute`, and `validate` functions.
-- CI workflow covering the supported Node.js versions.
-- MIT license and changelog.
-- Package metadata: `exports` map, `engines`, `sideEffects: false`, and a
-  `prepublishOnly` gate that lints, tests, and builds before publishing.
-- `CONTRIBUTING.md` describing setup, scripts, standards, and the PR process.
+- `Deadline` — an immutable deadline with a due date and optional description.
+  - Rejects an invalid `dueDate` at construction.
+  - Copies dates in and out, so an instance cannot be mutated through a
+    reference the caller holds.
+  - `isOverdue(now?)` takes an optional clock, which makes time-dependent logic
+    deterministic in tests. It is `false` at the exact due instant and throws on
+    an invalid `now`.
+- `validate(input)` — a defined-ness check. `0`, `''` and `false` are all valid;
+  only `undefined` and `null` are not.
+- Dual **ESM and CommonJS** builds, each with its own type definitions and
+  source maps, resolved through the `exports` map.
+- **Zero runtime dependencies.** Requires Node.js 20 or newer.
 
-### Fixed
+### Notes
 
-- Removed a stray `smoke-test` runtime dependency that pointed at a deleted local
-  directory. It shipped in the published manifest and broke installation for consumers.
-- `Deadline` now copies dates defensively on construction and in `getDueDate()`.
-  Instances could previously be mutated through a reference held by the caller.
-- `isOverdue()` now validates its `now` argument instead of silently returning
-  `false` when given an invalid `Date`.
+Quality gates enforced in CI on Node 20, 22 and 24: 100% test coverage against
+enforced thresholds, type-checking of both source and tests, type-aware linting,
+formatting, a dependency audit, smoke tests against both build formats, and a
+check that the published package resolves correctly for `import` and `require`.
 
-### Removed
+Releases are published from CI with
+[npm provenance](https://docs.npmjs.com/generating-provenance-statements).
 
-- Stale compiled `src/index.js` artifact, which had diverged from `src/index.ts`
-  and disagreed with it on `validate(null)`.
-- Self-reported `quality` and `regressionReport` blocks from `system.json`.
-  Nothing generated them and they did not reflect the state of the code.
-
-### Changed
-
-- Minimum supported Node.js is now 20 (was 18, which is end-of-life). CI runs on
-  Node 20, 22, and 24.
-- ESLint upgraded to v9 with flat config and type-aware linting enabled.
-- Tests are now type-checked. `tsconfig.test.json` covers `tests/`, while the
-  production `tsconfig.json` no longer pulls in Jest's global types.
-- Enabled `noUncheckedIndexedAccess`, `noUnusedLocals`, `noUnusedParameters`,
-  and `noImplicitOverride`.
-- Coverage thresholds are enforced (90% statements, 95% branches); the suite
-  currently sits at 100% on every metric.
-- Tautological tests replaced with behavioural ones covering `start`, falsy-but-
-  defined `validate` inputs, empty descriptions, and the `isOverdue` boundary.
-- CI hardened: least-privilege `permissions`, actions pinned to commit SHAs, a
-  dependency audit step, and a smoke test that asserts on the built output.
-
-- Guard against a platform-pruned `package-lock.json`. A bare `npm install`
-  drops native bindings for other platforms; a CI step and a pre-commit hook
-  now reject such a lockfile before it can break everyone else's `npm ci`.
-
-### Security
-
-- Added `SECURITY.md` with a private vulnerability reporting process.
-- Added Dependabot for npm and GitHub Actions updates.
+[unreleased]: https://github.com/SifisoScS/scheduler-deadline/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/SifisoScS/scheduler-deadline/releases/tag/v1.0.0

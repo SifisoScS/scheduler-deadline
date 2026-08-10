@@ -2,12 +2,18 @@
   "name": "scheduler-deadline",
   "version": "1.0.0",
   "description": "A module for scheduling deadlines.",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "./dist/cjs/index.js",
+  "types": "./dist/cjs/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
+      "import": {
+        "types": "./dist/esm/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
     },
     "./package.json": "./package.json"
   },
@@ -16,8 +22,8 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc",
-    "dev": "ts-node src/index.ts",
+    "build": "npm run clean && tsc -p tsconfig.build.cjs.json && tsc -p tsconfig.build.esm.json && node scripts/write-dist-markers.js",
+    "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -42,7 +48,6 @@
     "jest": "^30.4.2",
     "prettier": "^3.0.0",
     "ts-jest": "^29.0.0",
-    "ts-node": "^10.0.0",
     "typescript": "^6.0.0",
     "typescript-eslint": "^8.66.0"
   },
